@@ -136,12 +136,22 @@
       <label for="email">Kayıtlı E-posta Adresi</label>
       <input type="email" id="email" name="email" placeholder="uygulama@ornek.com" required />
 
-      <a id="submitBtn" class="btn" href="#">Hesap Silme Talebini Gönder</a>
+      <button id="submitBtn" class="btn" type="submit">Hesap Silme Talebini Gönder</button>
     </form>
 
-    <p class="note">
-      Talebiniz <strong>info@alpagusavunma.com.tr</strong> adresine iletilecektir.<br />
-      İşlem süreci hakkında aynı adrese e-posta gönderebilirsiniz.
+    <div id="successMsg" style="display:none;background:#f0fff4;border:1px solid #6ee7b7;border-radius:8px;padding:16px;margin-top:16px;font-size:14px;line-height:1.6;color:#065f46;">
+      <strong>Talebiniz alındı.</strong><br />
+      Kayıtlı e-posta adresinize bir onay linki gönderdik. Linke tıkladıktan sonra hesabınız
+      7 gün içinde kalıcı olarak silinecektir.
+    </div>
+
+    <div id="errorMsg" style="display:none;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;padding:16px;margin-top:16px;font-size:14px;line-height:1.6;color:#7f1d1d;">
+      Bir sorun oluştu. Lütfen tekrar deneyin veya
+      <a href="mailto:info@alpagusavunma.com.tr">info@alpagusavunma.com.tr</a> adresine yazın.
+    </div>
+
+    <p class="note" id="noteText">
+      Kayıtlı e-posta adresinize bir onay bağlantısı gönderilecektir.
     </p>
   </div>
 
@@ -154,23 +164,38 @@
   </footer>
 
   <script>
-    document.getElementById('submitBtn').addEventListener('click', function(e) {
+    var EDGE_URL = 'https://hhwgndataqzkgbyjqxlv.supabase.co/functions/v1/request-deletion';
+
+    document.getElementById('deleteForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       var name = document.getElementById('fullname').value.trim();
       var email = document.getElementById('email').value.trim();
-      if (!name || !email) {
-        alert('Lütfen ad soyad ve e-posta adresinizi girin.');
-        return;
+      if (!name || !email) return;
+
+      var btn = document.getElementById('submitBtn');
+      btn.textContent = 'Gönderiliyor…';
+      btn.disabled = true;
+      btn.style.background = '#999';
+
+      try {
+        var res = await fetch(EDGE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, reason: 'Web formu — ' + name }),
+        });
+        if (res.ok) {
+          document.getElementById('deleteForm').style.display = 'none';
+          document.getElementById('noteText').style.display = 'none';
+          document.getElementById('successMsg').style.display = 'block';
+        } else {
+          throw new Error('server error');
+        }
+      } catch (_) {
+        document.getElementById('errorMsg').style.display = 'block';
+        btn.textContent = 'Hesap Silme Talebini Gönder';
+        btn.disabled = false;
+        btn.style.background = '#d32f2f';
       }
-      var subject = encodeURIComponent('Hesap Silme Talebi — Usta İşi');
-      var body = encodeURIComponent(
-        'Hesap silme talebinde bulunuyorum.\n\n' +
-        'Ad Soyad: ' + name + '\n' +
-        'Kayıtlı E-posta: ' + email + '\n\n' +
-        'Lütfen hesabımı ve tüm verilerimi kalıcı olarak silin.\n\n' +
-        'Bu talebin kendi rızamla gönderildiğini onaylıyorum.'
-      );
-      window.location.href = 'mailto:info@alpagusavunma.com.tr?subject=' + subject + '&body=' + body;
     });
   </script>
 </body>
